@@ -15,7 +15,7 @@ namespace Quartermaster
     {
         public const string PluginGuid    = "com.quartermaster";
         public const string PluginName    = "Quartermaster";
-        public const string PluginVersion = "1.2.0";
+        public const string PluginVersion = "1.2.1";
 
         private const string ListFileName = "quartermaster.json";
 
@@ -121,7 +121,19 @@ namespace Quartermaster
             }
         }
 
-        private static void BeforeVehicleList() => Safely();
+        private static void BeforeVehicleList(ContributeToFaction __instance)
+        {
+            Safely();
+
+            try
+            {
+                ConvoyListPanel.ClearOldButtons(__instance);
+            }
+            catch (Exception e)
+            {
+                Log.LogError($"The old convoy buttons could not be cleared: {e.Message}");
+            }
+        }
 
         private static void AfterVehicleList(ContributeToFaction __instance)
         {

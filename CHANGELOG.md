@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.2.1
+
+- **The donate menu grows with your lists.** Adding options used to push the
+  buttons past the bottom of the panel, where they drew over the funds readout.
+  The list now takes as much room as the menu has and scrolls once it runs out.
+- **Buttons no longer stack.** Opening the donate menu a second time left the
+  previous set of buttons in place and built a new set on top of them.
+
 ## 1.2.0
 
 - **The buy menu scrolls.** A list longer than the panel used to be clipped, so
