@@ -1,0 +1,21 @@
+namespace Quartermaster
+{
+    internal static class DefaultJson
+    {
+        internal const string Text = @"{
+  ""convoys"": [
+    {
+      ""name"": ""Rocket Artillery Battery"",
+      ""cooldown"": 120,
+      ""factions"": [],
+      ""units"": [
+        { ""id"": ""Truck2-MLRS"", ""count"": 4 },
+        { ""id"": ""Truck2-M"",    ""count"": 2 },
+        { ""id"": ""Truck2-MRAP"", ""count"": 2 }
+      ]
+    }
+  ]
+}
+";
+    }
+}
