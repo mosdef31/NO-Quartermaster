@@ -14,6 +14,65 @@ namespace Quartermaster
         { ""id"": ""Truck2-MRAP"", ""count"": 2 }
       ]
     }
+  ],
+  ""sections"": [
+    {
+      ""name"": ""Armour"",
+      ""convoys"": [
+        {
+          ""name"": ""Armoured Spearhead"",
+          ""cooldown"": 180,
+          ""factions"": [],
+          ""units"": [
+            { ""id"": ""MBT1"",            ""count"": 4 },
+            { ""id"": ""Linebreaker_IFV"", ""count"": 4 },
+            { ""id"": ""Truck2-M"",        ""count"": 2 }
+          ]
+        }
+      ]
+    },
+    {
+      ""name"": ""Air defence"",
+      ""convoys"": [
+        {
+          ""name"": ""Air Defence Screen"",
+          ""cooldown"": 180,
+          ""factions"": [],
+          ""units"": [
+            { ""id"": ""SAMTurret1"",      ""count"": 2 },
+            { ""id"": ""Truck2-R"",        ""count"": 1 },
+            { ""id"": ""Truck2-FC"",       ""count"": 1 },
+            { ""id"": ""SPAAG1"",          ""count"": 2 },
+            { ""id"": ""Linebreaker_SAM"", ""count"": 2 }
+          ]
+        }
+      ]
+    },
+    {
+      ""name"": ""Support"",
+      ""convoys"": [
+        {
+          ""name"": ""Forward Recon Screen"",
+          ""cooldown"": 90,
+          ""factions"": [],
+          ""units"": [
+            { ""id"": ""LCV45"",       ""count"": 4 },
+            { ""id"": ""Truck2-MRAP"", ""count"": 4 }
+          ]
+        },
+        {
+          ""name"": ""Supply Column"",
+          ""cooldown"": 90,
+          ""factions"": [],
+          ""units"": [
+            { ""id"": ""Truck2-M"",    ""count"": 4 },
+            { ""id"": ""Truck2-FT"",   ""count"": 2 },
+            { ""id"": ""Truck2-L"",    ""count"": 2 },
+            { ""id"": ""Truck2-MRAP"", ""count"": 2 }
+          ]
+        }
+      ]
+    }
   ]
 }
 ";

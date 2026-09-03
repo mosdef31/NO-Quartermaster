@@ -45,6 +45,8 @@ namespace Quartermaster
 
         private const float Margin = 8f;
 
+        private const float MinBudget = 60f;
+
         internal static void ClearOldButtons(ContributeToFaction menu)
         {
             if (menu == null || BackgroundField == null) return;
@@ -154,8 +156,10 @@ namespace Quartermaster
             QuartermasterPlugin.Log.LogInfo(
                 fitted
                     ? "The convoy buy list now grows with its entries up to "
-                      + $"{budget:0} px - the room between it and the furniture below it - and "
-                      + "scrolls past that."
+                      + $"{budget:0} px and scrolls past that. That number is the MEASURED room "
+                      + "above the furniture below it when the line above says so, and the "
+                      + "container's own drawn height only when the measurement was unusable - "
+                      + "the two are different and saying so is what the tenth flight cost."
                     : "The convoy buy list is now scrollable over the box the game gave it. It "
                       + "cannot grow, because its container has no layout group to ask.");
         }
@@ -199,18 +203,19 @@ namespace Quartermaster
 
             float budget = listTop - highestBelow - Margin;
 
-            if (budget < fallback)
+            if (budget < MinBudget)
             {
                 QuartermasterPlugin.Diag(
-                    $"The space above '{named}' measured {budget:0} px, less than the "
-                    + $"{fallback:0} px the list already occupies, so the reading was rejected "
-                    + "and the container's own height kept.");
+                    $"Only {budget:0} px measured above '{named}', under the {MinBudget:0} px "
+                    + "floor, so the reading was treated as unusable and the container's own "
+                    + $"{fallback:0} px kept. The list may overlap.");
                 return fallback;
             }
 
             QuartermasterPlugin.Diag(
-                $"The convoy list has {budget:0} px before it would reach '{named}', against the "
-                + $"{fallback:0} px its container was drawn at.");
+                $"The convoy list has {budget:0} px before it would reach '{named}'. Its container "
+                + $"was drawn at {fallback:0} px, and where that is the larger number the drawn box "
+                + "overlaps the furniture and the measurement is the one to trust.");
 
             return budget;
         }

@@ -21,6 +21,9 @@ namespace Quartermaster
 
         private static readonly HashSet<string> _reported = new HashSet<string>();
 
+        internal static readonly Dictionary<string, string> Unresolved =
+            new Dictionary<string, string>();
+
         internal static void Load(string path)
         {
             _file = null;
@@ -298,6 +301,9 @@ namespace Quartermaster
         {
             RemoveAll();
             _reported.Clear();
+
+            Unresolved.Clear();
+
             Load(Path_);
             EnsureAllFactions();
         }
@@ -388,8 +394,30 @@ namespace Quartermaster
 
         private static void Report(string id, string why)
         {
+
+            Unresolved[id] = why;
+
             if (_reported.Add(id))
                 QuartermasterPlugin.Log.LogWarning($"Unit \"{id}\" was skipped: {why}.");
+        }
+
+        internal static string? WhyUnresolved(string id)
+        {
+            if (string.IsNullOrEmpty(id)) return "this unit has no id";
+
+            if (Unresolved.TryGetValue(id, out string remembered)) return remembered;
+
+            if (Encyclopedia.Lookup == null) return null;
+
+            foreach (KeyValuePair<string, UnitDefinition> pair in Encyclopedia.Lookup)
+            {
+                if (!string.Equals(pair.Key, id, System.StringComparison.OrdinalIgnoreCase)) continue;
+                return pair.Value != null && pair.Value.unitPrefab != null
+                    ? null
+                    : "that unit has no prefab";
+            }
+
+            return "no unit has that id";
         }
     }
 }

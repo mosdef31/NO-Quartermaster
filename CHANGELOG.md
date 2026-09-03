@@ -1,5 +1,68 @@
 # Changelog
 
+## 1.3.0
+
+- **A rebuilt editor.** Dark, readable, and drawn at a size that matches your
+  screen instead of a fixed number of pixels, so it is no longer half the size on
+  a 4K panel. The window is larger, it can be resized by its bottom right corner,
+  and no panel draws over another at any size.
+- **A key opens it.** `F7` by default, and rebindable in the settings.
+- **The unit count is bigger and clearer**, so the number you are adjusting is the
+  one your eye lands on.
+- **Live cost while you edit.** The strip under the units shows what the bundle
+  costs, worked out exactly the way the buy menu works it out, ammunition
+  included. It turns red when the bundle costs more than you can spend.
+- **Faction targeting has a control.** The `factions` field has always been in the
+  file and there was no way to set it without editing JSON. Now every faction the
+  game knows about is a toggle.
+- **Filter the catalogue by role.** Tanks, artillery, SAMs, trucks and the rest,
+  by the game's own categories.
+- **Unit ids that resolve to nothing are visible.** They used to appear only in
+  the log and as a question mark on one row. They are now red, with the reason
+  beside them, and counted along the top of the window.
+- **Clone a list**, to start a variant without rebuilding it.
+- **Reorder lists** with the arrows, which is the order the buttons appear in.
+- **Share one list as a paste.** Copy puts it on your clipboard as a single line;
+  Paste adds it to your file. It never overwrites a list you already have.
+- **The multiplayer fingerprint is on screen**, along the top of the editor, with
+  whether you match the host. Two players can compare it before a mission instead
+  of finding out during one.
+- **Five starter lists instead of one**, across three sections: artillery, armour,
+  air defence, recon and supply.
+- **The category buttons fit their own words.** TRUCK and IR SAM were cut short to
+  RUCK and IR S. Every filter button is now measured against the longest label in
+  the set and they are all the same width, so the row reads as a grid.
+- **Selecting a button no longer changes its size.** A pressed filter used to
+  switch to a larger, bolder typeface in a cell of the same width, which is what
+  clipped IR SAM the moment you chose it. Selection is the colour and the border
+  now, and nothing moves.
+- **The vehicle list is one weight throughout.** Every other row looked heavier
+  than its neighbours. Nothing was sized differently; the stripe behind the text
+  was light enough to change how the letters resolved. The stripe is fainter and
+  the rows are an equal height.
+- **Scrollbars match the window.** They were the stock grey Unity bars with an
+  arrow at each end. They are now a dark gutter with a thumb that lights up under
+  the pointer.
+- **Text lines up.** Names, roles and prices in a row share a centre line instead
+  of hanging from the top of their own boxes, and prices are right aligned so the
+  column can be read down.
+- **The multiplayer line only speaks when it has something to say.** It used to
+  read "not checked yet" for an entire single player session. Matched and
+  mismatched still announce themselves, and the fingerprint is always shown.
+
+## 1.2.2
+
+- **Deleting a list now actually deletes it.** "Delete selected" only ever changed
+  the copy in memory, so the list stayed in `quartermaster.json` and its option
+  stayed in the donate menu until you noticed a one line status asking you to press
+  Save. Delete now removes the list, writes the file and refreshes the buy menu in
+  one press. If the write is refused, the list comes back and you are told why.
+- **The donate menu no longer draws over the panel below it.** The menu measured
+  the free space above the contribute slider correctly and then threw the reading
+  away, because it was smaller than the box the list was drawn in. That box is the
+  overlap, so the list kept covering the slider no matter how many entries you had.
+  The measurement is trusted now, and the list scrolls inside it.
+
 ## 1.2.1
 
 - **The donate menu grows with your lists.** Adding options used to push the

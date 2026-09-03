@@ -15,7 +15,7 @@ namespace Quartermaster
     {
         public const string PluginGuid    = "com.quartermaster";
         public const string PluginName    = "Quartermaster";
-        public const string PluginVersion = "1.2.1";
+        public const string PluginVersion = "1.3.0";
 
         private const string ListFileName = "quartermaster.json";
 
@@ -24,6 +24,13 @@ namespace Quartermaster
         private static ConfigEntry<bool>? _enabled;
         private static ConfigEntry<bool>? _diagnostics;
         private static ConfigEntry<bool>? _showEditor;
+        private static ConfigEntry<KeyboardShortcut>? _toggleKey;
+        private static ConfigEntry<float>? _uiScale;
+
+        internal static KeyboardShortcut ToggleKey =>
+            _toggleKey != null ? _toggleKey.Value : new KeyboardShortcut(KeyCode.F7);
+
+        internal static float UiScale => _uiScale != null ? _uiScale.Value : 0f;
 
         internal static bool EditorVisible
         {
@@ -60,6 +67,21 @@ namespace Quartermaster
                 + ListFileName + ". Untick it, or press Close in the window, to hide it again. "
                 + "Editing during a mission changes the order of the buy menu, which is what a "
                 + "purchase is sent as in multiplayer, so edit between missions.");
+
+            _toggleKey = Config.Bind(
+                "Interface", "ToggleKey", new KeyboardShortcut(KeyCode.F7),
+                "The key that shows and hides the in-game convoy editor. Modifiers are allowed, "
+                + "written like LeftControl + F7. This does the same thing as the ShowEditor "
+                + "checkbox and the window's own Close button, so all three always agree.");
+
+            _uiScale = Config.Bind(
+                "Interface", "UiScale", 0f,
+                new ConfigDescription(
+                    "How large the editor window is drawn. 0 works it out from your screen "
+                    + "height, which is the right answer on almost every machine. Set a number "
+                    + "to override it - 1 is the smallest readable size and 2 suits a 4K panel. "
+                    + "Takes effect straight away; no restart.",
+                    new AcceptableValueRange<float>(0f, 3f)));
 
             if (!_enabled.Value)
             {
