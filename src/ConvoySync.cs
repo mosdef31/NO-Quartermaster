@@ -29,6 +29,9 @@ namespace Quartermaster
 
             foreach (ConvoyEntry entry in entries)
             {
+
+                if (!entry.Enabled) continue;
+
                 sb.Append(entry.Name).Append(Unit)
                   .Append(entry.Cooldown.ToString("0.###", CultureInfo.InvariantCulture)).Append(Unit);
 

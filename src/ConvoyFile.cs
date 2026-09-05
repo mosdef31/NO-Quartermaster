@@ -21,6 +21,8 @@ namespace Quartermaster
 
         internal string Section = "";
 
+        internal bool Enabled = true;
+
         internal List<ConvoyUnitEntry> Units = new List<ConvoyUnitEntry>();
 
         internal int Line;

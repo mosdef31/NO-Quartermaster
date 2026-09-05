@@ -17,6 +17,7 @@ namespace Quartermaster
                 Name = entry.Name,
                 Cooldown = entry.Cooldown,
                 Icon = entry.Icon,
+                Enabled = entry.Enabled,
                 Section = "",
                 Factions = new List<string>(entry.Factions),
                 Units = new List<ConvoyUnitEntry>(),

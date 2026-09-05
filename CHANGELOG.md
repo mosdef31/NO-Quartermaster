@@ -1,5 +1,63 @@
 # Changelog
 
+## 1.4.0
+
+- **A vehicle row adds from anywhere along it.** The whole row is the button, from its
+  icon across to its price.
+- **Vehicles wear their own icons.** The `+` is replaced by the icon the game
+  draws for that unit, so the catalogue reads the way the rest of the game does.
+  A unit the game has no icon for keeps the `+`.
+- **Your lists show the icon they will have in the buy menu.** It is the icon you
+  named, or the icon of the first unit in the list if you named none, which is
+  what the buy menu has always done, and until now there was nowhere to see it.
+- **Hover a vehicle to see what it is armed with.** In either panel of the editor,
+  resting the cursor on a vehicle shows its weapons, how many stations carry each
+  one, and how many rounds each of those holds.
+- **The vehicle list fits.** The price and the role used to slide off the right
+  edge into a sideways scrollbar on any long vehicle name. The column is wider,
+  every cell is measured, and nothing scrolls sideways any more.
+- **Switch a list off without deleting it.** Press `on` beside a list to take it
+  out of the buy menu and leave it in your file. It keeps its units, its icon and
+  its place, and a list that is off does not count towards the multiplayer check.
+- **Import and export the whole file.** Export writes a timestamped copy beside
+  `quartermaster.json` and puts the lot on your clipboard. Import adds what is on
+  the clipboard to what you have; Replace swaps everything for it, and takes a
+  copy first.
+- **A soft warning on an expensive list.** A bundle over $200m says so in one
+  line. It is a warning and nothing else: the list still saves, still appears and
+  can still be bought. Set your own figure with `BudgetWarningAbove`, or `0` to
+  turn it off.
+- **The buy menu grows to fit its options.** It measured the room it had once,
+  against furniture that may not even have been on screen, and then kept that
+  number for the rest of the mission. It now re-measures as the menu changes.
+- **The buy list scrolls smoothly.** The wheel used to jump it.
+- **Section names are headings.** They were printed underneath the lists they
+  belonged to, which read as a label on the wrong list. They are now above them.
+- **Bundle prices include ammunition, at last.** The cost strip had been quoting
+  hull prices only. It asked each vehicle what its ammunition was worth at a
+  moment when the vehicle had no weapons on it yet, so the answer came back as
+  nothing every time.
+- **The vehicle list is never empty any more.** Open the editor before the game
+  has finished loading its units and the list came up blank and stayed blank for
+  the rest of the session, because the empty answer was cached. It asks again
+  every frame until there is something to show, and says on screen why it is
+  waiting.
+- **Your lists fit their column.** The right-hand column had the same fault the
+  vehicle list had: a long name pushed the row wider than the panel and slid the
+  name behind a sideways scrollbar. Every cell is measured now.
+- **A bigger window, with the empty strip at the bottom gone.** The three columns
+  used to stop short of the footer and leave a band of dead space under the saving
+  note. The footer is measured, so the columns run right down to it.
+- **The armament tooltip appears under the cursor.** It was drawn well above and
+  to the left of the pointer, and it was larger than it needed to be. It is
+  smaller, shorter, and directly below the cursor.
+- **`Left Alt` + `` ` `` opens the editor**, replacing `F7`.
+- **The editor no longer comes back open.** Quitting with the window up saved it
+  as open, so the next launch drew it over the main menu. Every session now starts
+  with it hidden.
+- **`BuyListHeight`** sets how tall the convoy list in the buy menu may grow, for
+  anyone who wants it larger than the room the menu measures.
+
 ## 1.3.0
 
 - **A rebuilt editor.** Dark, readable, and drawn at a size that matches your

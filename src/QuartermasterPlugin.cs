@@ -15,7 +15,7 @@ namespace Quartermaster
     {
         public const string PluginGuid    = "com.quartermaster";
         public const string PluginName    = "Quartermaster";
-        public const string PluginVersion = "1.3.0";
+        public const string PluginVersion = "1.4.0";
 
         private const string ListFileName = "quartermaster.json";
 
@@ -26,11 +26,19 @@ namespace Quartermaster
         private static ConfigEntry<bool>? _showEditor;
         private static ConfigEntry<KeyboardShortcut>? _toggleKey;
         private static ConfigEntry<float>? _uiScale;
+        private static ConfigEntry<float>? _budgetCap;
+        private static ConfigEntry<float>? _buyListHeight;
 
         internal static KeyboardShortcut ToggleKey =>
-            _toggleKey != null ? _toggleKey.Value : new KeyboardShortcut(KeyCode.F7);
+            _toggleKey != null
+                ? _toggleKey.Value
+                : new KeyboardShortcut(KeyCode.BackQuote, KeyCode.LeftAlt);
 
         internal static float UiScale => _uiScale != null ? _uiScale.Value : 0f;
+
+        internal static float BudgetCap => _budgetCap != null ? _budgetCap.Value : 200f;
+
+        internal static float BuyListHeight => _buyListHeight != null ? _buyListHeight.Value : 0f;
 
         internal static bool EditorVisible
         {
@@ -50,38 +58,50 @@ namespace Quartermaster
 
             _enabled = Config.Bind(
                 "General", "Enabled", true,
-                "Turn the mod off without removing it. Off means no options are added to the "
-                + "convoy menu and no file is read or written.");
+                "Turn the mod off without removing it. Off adds no convoy options and touches "
+                + "no file.");
 
             _diagnostics = Config.Bind(
                 "General", "Diagnostics", false,
-                "Write extra lines to the BepInEx log describing what was read from "
-                + ListFileName + ", what each list parsed to and what each icon loaded as. Off by "
-                + "default. Turn it on if a list of yours is not appearing, then send the log. "
-                + "Problems are logged either way; this only adds the commentary around them.");
+                "Extra log lines about what was read from " + ListFileName + ". Turn it on if a "
+                + "list is missing, then send the log. Problems are logged either way.");
 
             _showEditor = Config.Bind(
                 "General", "ShowEditor", false,
-                "Show the in-game convoy editor. Tick this to open a window that lists every "
-                + "ground vehicle, lets you build a convoy out of them and writes the result to "
-                + ListFileName + ". Untick it, or press Close in the window, to hide it again. "
-                + "Editing during a mission changes the order of the buy menu, which is what a "
-                + "purchase is sent as in multiplayer, so edit between missions.");
+                "Show the convoy editor: build lists out of the game's ground vehicles and write "
+                + "them to " + ListFileName + ". Edit between missions - saving in one reorders "
+                + "the buy menu, and online a purchase is sent as that order.");
+
+            _showEditor.Value = false;
 
             _toggleKey = Config.Bind(
-                "Interface", "ToggleKey", new KeyboardShortcut(KeyCode.F7),
-                "The key that shows and hides the in-game convoy editor. Modifiers are allowed, "
-                + "written like LeftControl + F7. This does the same thing as the ShowEditor "
-                + "checkbox and the window's own Close button, so all three always agree.");
+                "Interface", "ToggleKey",
+                new KeyboardShortcut(KeyCode.BackQuote, KeyCode.LeftAlt),
+                "Shows and hides the editor. Modifiers allowed. Same switch as ShowEditor and "
+                + "the window's Close button.");
 
             _uiScale = Config.Bind(
                 "Interface", "UiScale", 0f,
                 new ConfigDescription(
-                    "How large the editor window is drawn. 0 works it out from your screen "
-                    + "height, which is the right answer on almost every machine. Set a number "
-                    + "to override it - 1 is the smallest readable size and 2 suits a 4K panel. "
-                    + "Takes effect straight away; no restart.",
+                    "How large the editor is drawn. 0 works it out from your screen height. "
+                    + "Otherwise 1 is the smallest readable size and 2 suits a 4K panel. No "
+                    + "restart needed.",
                     new AcceptableValueRange<float>(0f, 3f)));
+
+            _budgetCap = Config.Bind(
+                "Interface", "BudgetWarningAbove", 200f,
+                new ConfigDescription(
+                    "Warn when a list costs more than this many millions. A warning, not a "
+                    + "limit: an expensive list still saves and can still be bought. 0 turns "
+                    + "the warning off.",
+                    new AcceptableValueRange<float>(0f, 1000f)));
+
+            _buyListHeight = Config.Bind(
+                "Interface", "BuyListHeight", 0f,
+                new ConfigDescription(
+                    "How tall the convoy list in the buy menu may grow, in pixels. 0 measures "
+                    + "the room the menu actually has, which is what the log reports.",
+                    new AcceptableValueRange<float>(0f, 900f)));
 
             if (!_enabled.Value)
             {

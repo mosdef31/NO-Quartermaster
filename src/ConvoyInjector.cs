@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
@@ -164,6 +165,14 @@ namespace Quartermaster
                     entry.Cooldown = (float)cooldown.AsNumber(60d);
                 }
 
+                JsonValue? enabled = item.Member("enabled");
+                if (enabled != null)
+                {
+                    if (enabled.Type != JsonValue.Kind.Bool)
+                        throw new JsonError("\"enabled\" should be true or false", enabled.Line);
+                    entry.Enabled = enabled.Bool;
+                }
+
                 JsonValue? icon = item.Member("icon");
                 if (icon != null)
                 {
@@ -245,6 +254,9 @@ namespace Quartermaster
             foreach (ConvoyEntry entry in _file.Convoys)
             {
                 if (string.IsNullOrEmpty(entry.Name)) continue;
+
+                if (!entry.Enabled) continue;
+
                 if (!WantsFaction(entry, faction)) continue;
                 if (faction.TryGetConvoyGroup(entry.Name, out _)) continue;
 

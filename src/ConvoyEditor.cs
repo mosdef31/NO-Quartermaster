@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using NuclearOption.Networking;
 using UnityEngine;
 
@@ -9,11 +10,11 @@ namespace Quartermaster
     {
         private const int WindowId = 0x51554152;
 
-        private const float CatalogueShare = 0.30f;
-        private const float ListsShare = 0.24f;
+        private const float CatalogueShare = 0.36f;
+        private const float ListsShare = 0.30f;
 
-        private const float BaseWidth = 1060f;
-        private const float BaseHeight = 700f;
+        private const float BaseWidth = 1240f;
+        private const float BaseHeight = 780f;
 
         private const float MinWidth = 720f;
         private const float MinHeight = 460f;
@@ -21,6 +22,12 @@ namespace Quartermaster
         private Rect _window;
         private bool _placed;
         private bool _resizing;
+
+        private float _slack;
+
+        private string _catalogueTrouble = "";
+
+        private bool _saidCatalogueTrouble;
 
         private Vector2 _catalogueScroll;
         private Vector2 _listScroll;
@@ -89,9 +96,12 @@ namespace Quartermaster
 
         private void Draw(int id)
         {
+
+            HoverCard.Begin();
+
             DrawStatusStrip();
 
-            float columnsHeight = _window.height - EditorSkin.S(196f);
+            float columnsHeight = _window.height - EditorSkin.S(196f) + _slack;
             columnsHeight = Mathf.Max(columnsHeight, EditorSkin.S(120f));
 
             float inner = _window.width - EditorSkin.S(28f);
@@ -107,7 +117,10 @@ namespace Quartermaster
             GUILayout.EndHorizontal();
 
             DrawFooter();
+            MeasureSlack();
             DrawResizeGrip();
+
+            HoverCard.Draw(_window);
 
             GUI.DragWindow(new Rect(0f, 0f, _window.width, EditorSkin.S(22f)));
         }
@@ -141,8 +154,8 @@ namespace Quartermaster
             if (unknown > 0)
             {
                 EditorSkin.Coloured(EditorSkin.Bad,
-                    unknown + " unit id" + (unknown == 1 ? "" : "s") + " in your file resolve to "
-                    + "nothing", EditorSkin.LabelStyle);
+                    unknown + " unit id" + (unknown == 1 ? "" : "s") + " resolve to nothing",
+                    EditorSkin.LabelStyle);
             }
 
             GUILayout.EndHorizontal();
@@ -159,7 +172,16 @@ namespace Quartermaster
 
             DrawRoleFilter(width);
 
+            GUILayout.Space(EditorSkin.S(6f));
+
             _catalogueScroll = GUILayout.BeginScrollView(_catalogueScroll, GUILayout.ExpandHeight(true));
+
+            float plus = EditorSkin.S(26f);
+            float role = EditorSkin.S(56f);
+            float price = EditorSkin.S(66f);
+
+            float furniture = EditorSkin.S(34f) + plus + role + price;
+            float nameWidth = Mathf.Max(EditorSkin.S(60f), width - furniture);
 
             int index = 0;
             foreach (VehicleDefinition vehicle in Catalogue())
@@ -168,25 +190,72 @@ namespace Quartermaster
                 if (!Matches(vehicle)) continue;
 
                 GUILayout.BeginHorizontal(index++ % 2 == 0 ? EditorSkin.RowStyle : EditorSkin.RowAltStyle,
-                                          GUILayout.Height(EditorSkin.S(24f)));
+                                          GUILayout.Height(EditorSkin.S(27f)));
 
-                if (GUILayout.Button("+", EditorSkin.SmallButtonStyle, GUILayout.Width(EditorSkin.S(26f))))
-                    Add(vehicle.jsonKey, 1);
+                bool add = false;
+                Sprite? icon = vehicle.friendlyIcon;
+
+                if (icon != null)
+                {
+                    if (GUILayout.Button(GUIContent.none, EditorSkin.SmallButtonStyle,
+                                         GUILayout.Width(plus)))
+                        add = true;
+
+                    if (Event.current.type == EventType.Repaint)
+                        DrawSprite(GUILayoutUtility.GetLastRect(), icon);
+                }
+                else if (GUILayout.Button("+", EditorSkin.SmallButtonStyle, GUILayout.Width(plus)))
+                {
+                    add = true;
+                }
 
                 GUILayout.Label(vehicle.unitName ?? "", EditorSkin.LabelStyle,
-                                GUILayout.ExpandWidth(true));
+                                GUILayout.Width(nameWidth));
 
-                GUILayout.Label(RoleTag(vehicle), EditorSkin.DimStyle,
-                                GUILayout.Width(EditorSkin.S(48f)));
+                GUILayout.Label(RoleTag(vehicle), EditorSkin.DimStyle, GUILayout.Width(role));
 
-                GUILayout.Label(Price(vehicle), EditorSkin.PriceStyle,
-                                GUILayout.Width(EditorSkin.S(58f)));
+                GUILayout.Label(Price(vehicle), EditorSkin.PriceStyle, GUILayout.Width(price));
 
                 GUILayout.EndHorizontal();
+
+                Rect rowRect = GUILayoutUtility.GetLastRect();
+                Event click = Event.current;
+
+                if (click.type == EventType.MouseDown
+                    && click.button == 0
+                    && rowRect.Contains(click.mousePosition))
+                {
+                    add = true;
+                    click.Use();
+                }
+
+                if (add) Add(vehicle.jsonKey, 1);
+
+                HoverCard.Offer(vehicle);
             }
+
+            if (index == 0)
+                GUILayout.Label(
+                    Catalogue().Count == 0
+                        ? "No vehicles yet - " + _catalogueTrouble
+                          + ". This clears itself; leave the window open."
+                        : "No vehicle matches that search or filter.",
+                    EditorSkin.WrapStyle);
 
             GUILayout.EndScrollView();
             GUILayout.EndVertical();
+        }
+
+        private void MeasureSlack()
+        {
+            if (Event.current.type != EventType.Repaint) return;
+
+            float bottom = GUILayoutUtility.GetLastRect().yMax;
+            float gap = _window.height - EditorSkin.S(12f) - bottom;
+
+            if (Mathf.Abs(gap) < 2f) return;
+
+            _slack = Mathf.Clamp(_slack + gap, -EditorSkin.S(200f), EditorSkin.S(400f));
         }
 
         private void DrawRoleFilter(float width)
@@ -248,6 +317,44 @@ namespace Quartermaster
             }
         }
 
+        private static void DrawSprite(Rect rect, Sprite sprite)
+        {
+            Texture texture = sprite.texture;
+            if (texture == null || texture.width <= 0 || texture.height <= 0) return;
+
+            Rect source;
+            try
+            {
+                source = sprite.textureRect;
+            }
+            catch (Exception)
+            {
+                source = sprite.rect;
+            }
+
+            if (source.width <= 0f || source.height <= 0f) return;
+
+            var coords = new Rect(source.x / texture.width,
+                                  source.y / texture.height,
+                                  source.width / texture.width,
+                                  source.height / texture.height);
+
+            float inset = EditorSkin.S(3f);
+            Rect box = new Rect(rect.x + inset, rect.y + inset,
+                                Mathf.Max(1f, rect.width - inset * 2f),
+                                Mathf.Max(1f, rect.height - inset * 2f));
+
+            float fit = Mathf.Min(box.width / source.width, box.height / source.height);
+            float drawnWidth = source.width * fit;
+            float drawnHeight = source.height * fit;
+
+            var target = new Rect(box.x + (box.width - drawnWidth) * 0.5f,
+                                  box.y + (box.height - drawnHeight) * 0.5f,
+                                  drawnWidth, drawnHeight);
+
+            GUI.DrawTextureWithTexCoords(target, texture, coords, alphaBlend: true);
+        }
+
         private static string RoleTag(VehicleDefinition vehicle)
         {
             return ShortRole(vehicle.vehicleType);
@@ -260,19 +367,43 @@ namespace Quartermaster
 
         private List<VehicleDefinition> Catalogue()
         {
-            if (_catalogue != null) return _catalogue;
+            if (_catalogue != null && _catalogue.Count > 0) return _catalogue;
 
-            _catalogue = new List<VehicleDefinition>();
-
+            var built = new List<VehicleDefinition>();
             Encyclopedia encyclopedia = Encyclopedia.i;
-            if (encyclopedia == null || encyclopedia.vehicles == null) return _catalogue;
 
-            _catalogue.AddRange(encyclopedia.vehicles);
-            _catalogue.Sort((a, b) =>
+            if (encyclopedia == null)
+                _catalogueTrouble = "the game has not finished loading its unit list";
+            else if (encyclopedia.vehicles == null || encyclopedia.vehicles.Count == 0)
+                _catalogueTrouble = "the game's own vehicle list is empty";
+            else
+                _catalogueTrouble = "";
+
+            if (_catalogueTrouble.Length > 0)
+            {
+
+                if (!_saidCatalogueTrouble)
+                {
+                    _saidCatalogueTrouble = true;
+                    QuartermasterPlugin.Log.LogWarning(
+                        "The editor has no vehicles to show because " + _catalogueTrouble
+                        + ". It will keep asking, so this should clear itself once the game "
+                        + "has loaded.");
+                }
+
+                _catalogue = built;
+                return built;
+            }
+
+            _saidCatalogueTrouble = false;
+
+            built.AddRange(encyclopedia!.vehicles);
+            built.Sort((a, b) =>
                 string.Compare(a != null ? a.unitName : "", b != null ? b.unitName : "",
                                StringComparison.OrdinalIgnoreCase));
 
-            return _catalogue;
+            _catalogue = built;
+            return built;
         }
 
         private bool Matches(VehicleDefinition vehicle)
@@ -293,8 +424,8 @@ namespace Quartermaster
             {
                 GUILayout.Label("NOTHING SELECTED", EditorSkin.HeadingStyle);
                 GUILayout.Label(
-                    "Pick a list on the right, or press New. A list is a named bundle of ground "
-                    + "vehicles that appears as one button in the convoy purchase menu.",
+                    "Pick a list on the right, or press New. A list is a bundle of vehicles "
+                    + "that becomes one button in the convoy purchase menu.",
                     EditorSkin.WrapStyle);
                 GUILayout.FlexibleSpace();
                 GUILayout.EndVertical();
@@ -349,7 +480,7 @@ namespace Quartermaster
 
             if (names.Count == 0)
             {
-                GUILayout.Label("No factions loaded yet - open this from inside a mission to choose.",
+                GUILayout.Label("No factions loaded yet. Open this in a mission to choose.",
                                 EditorSkin.WrapStyle);
                 return;
             }
@@ -386,9 +517,9 @@ namespace Quartermaster
 
             if (!all)
                 EditorSkin.Coloured(EditorSkin.Warn,
-                    "A list that only some factions get sits at a different position in each "
-                    + "faction's menu. That is safe in single player and is the thing the "
-                    + "multiplayer fingerprint check exists to catch.", EditorSkin.WrapStyle);
+                    "A list only some factions get sits at a different position in each "
+                    + "faction's menu. Safe alone; online the fingerprint check catches it.",
+                    EditorSkin.WrapStyle);
         }
 
         private bool Has(string name)
@@ -430,7 +561,7 @@ namespace Quartermaster
         {
             if (_editing!.Units.Count == 0)
             {
-                GUILayout.Label("No units yet. Press + beside a vehicle on the left.",
+                GUILayout.Label("No units yet. Press + on a vehicle to the left.",
                                 EditorSkin.WrapStyle);
                 return;
             }
@@ -474,6 +605,8 @@ namespace Quartermaster
 
                 GUILayout.EndHorizontal();
 
+                HoverCard.Offer(Definition(unit.Id));
+
                 if (why != null)
                     EditorSkin.Coloured(EditorSkin.Bad, "     " + why + " - it will not be bought",
                                         EditorSkin.WrapStyle);
@@ -500,15 +633,27 @@ namespace Quartermaster
             {
                 if (cost > allocation)
                     EditorSkin.Coloured(EditorSkin.Bad,
-                        "You cannot afford this - you have "
-                        + UnitConverter.ValueReading(allocation), EditorSkin.LabelStyle);
+                        "Too dear - you have " + UnitConverter.ValueReading(allocation),
+                        EditorSkin.LabelStyle);
                 else
                     EditorSkin.Coloured(EditorSkin.Good,
-                        "Affordable - you have " + UnitConverter.ValueReading(allocation),
+                        "You have " + UnitConverter.ValueReading(allocation),
                         EditorSkin.LabelStyle);
             }
 
             GUILayout.EndHorizontal();
+
+            DrawBudgetWarning(cost);
+        }
+
+        private void DrawBudgetWarning(float cost)
+        {
+            float budget = QuartermasterPlugin.BudgetCap;
+            if (budget <= 0f || cost <= budget) return;
+
+            EditorSkin.Coloured(EditorSkin.Warn,
+                "Over " + UnitConverter.ValueReading(budget) + " - this price may be too high.",
+                EditorSkin.WrapStyle);
         }
 
         private static float Cost(ConvoyEntry entry)
@@ -520,25 +665,11 @@ namespace Quartermaster
                 UnitDefinition? definition = Definition(unit.Id);
                 if (definition == null) continue;
 
-                total += (definition.value + AmmoValue(definition)) * Mathf.Max(1, unit.Count);
+                total += (definition.value + UnitArmament.AmmoValue(definition))
+                         * Mathf.Max(1, unit.Count);
             }
 
             return total;
-        }
-
-        private static float AmmoValue(UnitDefinition definition)
-        {
-            try
-            {
-                if (definition.unitPrefab == null) return 0f;
-
-                var unit = definition.unitPrefab.GetComponent<Unit>();
-                return unit == null ? 0f : unit.GetAmmoValue().Total;
-            }
-            catch (Exception)
-            {
-                return 0f;
-            }
         }
 
         private static int Vehicles(ConvoyEntry entry)
@@ -578,6 +709,24 @@ namespace Quartermaster
             return null;
         }
 
+        private static Sprite? ListIcon(ConvoyEntry entry)
+        {
+            if (entry.Icon.Length > 0)
+            {
+                Sprite? named = IconLoader.Load(entry.Icon, entry.Name);
+                if (named != null) return named;
+            }
+
+            foreach (ConvoyUnitEntry unit in entry.Units)
+            {
+                UnitDefinition? definition = Definition(unit.Id);
+                if (definition != null && definition.friendlyIcon != null)
+                    return definition.friendlyIcon;
+            }
+
+            return null;
+        }
+
         private static string DisplayName(string id)
         {
             UnitDefinition? definition = Definition(id);
@@ -611,34 +760,76 @@ namespace Quartermaster
 
             List<ConvoyEntry> entries = ConvoyInjector.Entries;
 
+            float arrow = EditorSkin.S(22f);
+            float onOff = EditorSkin.S(32f);
+
+            float badge = EditorSkin.S(22f);
+
+            float rowFurniture = EditorSkin.S(38f) + arrow + arrow + onOff + badge;
+            float listNameWidth = Mathf.Max(EditorSkin.S(70f), width - rowFurniture);
+
             _convoysScroll = GUILayout.BeginScrollView(_convoysScroll, GUILayout.ExpandHeight(true));
+
+            string section = "";
+            bool first = true;
 
             for (int i = 0; i < entries.Count; i++)
             {
                 ConvoyEntry entry = entries[i];
                 bool selected = ReferenceEquals(entry, _editing);
 
+                if (first || entry.Section != section)
+                {
+                    section = entry.Section;
+                    first = false;
+
+                    if (i > 0) GUILayout.Space(EditorSkin.S(6f));
+
+                    GUILayout.Label(section.Length > 0 ? section.ToUpperInvariant() : "UNSECTIONED",
+                                    EditorSkin.SectionStyle);
+                }
+
                 GUILayout.BeginHorizontal(i % 2 == 0 ? EditorSkin.RowStyle : EditorSkin.RowAltStyle,
                                           GUILayout.Height(EditorSkin.S(26f)));
-
-                float arrow = EditorSkin.S(22f);
 
                 if (GUILayout.Button("^", EditorSkin.SmallButtonStyle, GUILayout.Width(arrow)))
                     Move(entries, i, -1);
                 if (GUILayout.Button("v", EditorSkin.SmallButtonStyle, GUILayout.Width(arrow)))
                     Move(entries, i, 1);
 
-                if (GUILayout.Button(entry.Name,
-                                     selected
-                                         ? EditorSkin.ListButtonSelectedStyle
-                                         : EditorSkin.ListButtonStyle,
-                                     GUILayout.ExpandWidth(true)))
+                if (GUILayout.Button(entry.Enabled ? "on" : "off",
+                                     entry.Enabled ? EditorSkin.ToggleOnStyle : EditorSkin.ToggleStyle,
+                                     GUILayout.Width(onOff)))
+                {
+                    entry.Enabled = !entry.Enabled;
+
+                    Say(entry.Enabled
+                            ? entry.Name + " is on. Press Save to apply."
+                            : entry.Name + " is off - it stays in your file and leaves the buy "
+                              + "menu. Press Save to apply.",
+                        EditorSkin.Accent);
+                }
+
+                GUIStyle style = selected
+                    ? EditorSkin.ListButtonSelectedStyle
+                    : entry.Enabled
+                        ? EditorSkin.ListButtonStyle
+                        : EditorSkin.ListButtonOffStyle;
+
+                Rect badgeRect = GUILayoutUtility.GetRect(badge, badge,
+                                                          GUILayout.Width(badge),
+                                                          GUILayout.Height(badge));
+
+                if (Event.current.type == EventType.Repaint)
+                {
+                    Sprite? listIcon = ListIcon(entry);
+                    if (listIcon != null) DrawSprite(badgeRect, listIcon);
+                }
+
+                if (GUILayout.Button(entry.Name, style, GUILayout.Width(listNameWidth)))
                     _editing = entry;
 
                 GUILayout.EndHorizontal();
-
-                if (entry.Section.Length > 0)
-                    GUILayout.Label("    in " + entry.Section, EditorSkin.DimStyle);
             }
 
             GUILayout.EndScrollView();
@@ -663,12 +854,91 @@ namespace Quartermaster
                 Paste(entries);
             GUILayout.EndHorizontal();
 
+            GUILayout.Space(EditorSkin.S(6f));
+            GUILayout.Label("WHOLE FILE", EditorSkin.SectionStyle);
+
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button("Export", EditorSkin.ButtonStyle, GUILayout.ExpandWidth(true)))
+                ExportAll(entries);
+
+            if (GUILayout.Button("Import +", EditorSkin.ButtonStyle, GUILayout.ExpandWidth(true)))
+                ImportAll(entries, replace: false);
+
+            if (GUILayout.Button("Replace", EditorSkin.ButtonStyle, GUILayout.ExpandWidth(true)))
+                ImportAll(entries, replace: true);
+            GUILayout.EndHorizontal();
+
+            GUILayout.Space(EditorSkin.S(6f));
+
             GUI.enabled = _editing != null;
             if (GUILayout.Button("Delete selected", EditorSkin.ButtonStyle))
                 DeleteSelected(entries);
             GUI.enabled = true;
 
             GUILayout.EndVertical();
+        }
+
+        private void ExportAll(List<ConvoyEntry> entries)
+        {
+            try
+            {
+                string path = ConvoyTransfer.Export(entries);
+
+                Say("Exported " + entries.Count + " list(s) to " + Path.GetFileName(path)
+                    + " and to your clipboard.", EditorSkin.Good);
+            }
+            catch (Exception e)
+            {
+                Say("Could not export: " + e.Message, EditorSkin.Bad);
+                QuartermasterPlugin.Log.LogError($"The convoy file could not be exported: {e}");
+            }
+        }
+
+        private void ImportAll(List<ConvoyEntry> entries, bool replace)
+        {
+            ImportResult result;
+
+            try
+            {
+                result = ConvoyTransfer.Import(GUIUtility.systemCopyBuffer);
+            }
+            catch (JsonError bad)
+            {
+                Say("Nothing imported - " + bad.Message + ".", EditorSkin.Bad);
+                return;
+            }
+            catch (Exception e)
+            {
+                Say("Nothing imported - " + e.Message, EditorSkin.Bad);
+                return;
+            }
+
+            string backup = "";
+
+            if (replace)
+            {
+                try
+                {
+                    backup = Path.GetFileName(ConvoyTransfer.Export(entries));
+                }
+                catch (Exception e)
+                {
+                    Say("Nothing replaced - the backup could not be written: " + e.Message,
+                        EditorSkin.Bad);
+                    return;
+                }
+
+                entries.Clear();
+                _editing = null;
+            }
+
+            int added = ConvoyTransfer.Merge(entries, result.Entries);
+
+            Say(replace
+                    ? "Replaced everything with " + added + " list(s) from " + result.Message
+                      + ". Your old lists are in " + backup + ". Press Save to apply."
+                    : "Added " + added + " list(s) from " + result.Message + ". Press Save to apply.",
+                EditorSkin.Good);
         }
 
         private void NewList(List<ConvoyEntry> entries)
@@ -694,6 +964,7 @@ namespace Quartermaster
                 Name = ConvoyClipboard.FreeName(source.Name + " copy", entries),
                 Cooldown = source.Cooldown,
                 Icon = source.Icon,
+                Enabled = source.Enabled,
                 Section = source.Section,
                 Factions = new List<string>(source.Factions),
                 Units = new List<ConvoyUnitEntry>(),
@@ -820,7 +1091,7 @@ namespace Quartermaster
             {
                 _editing = null;
                 ConvoyInjector.Reload();
-                Say("Reloaded from quartermaster.json; unsaved changes are gone.", EditorSkin.Accent);
+                Say("Reloaded from quartermaster.json. Unsaved changes are gone.", EditorSkin.Accent);
             }
 
             if (GUILayout.Button("Close", EditorSkin.ButtonStyle, GUILayout.Width(EditorSkin.S(90f))))
@@ -832,9 +1103,9 @@ namespace Quartermaster
             GUILayout.EndHorizontal();
 
             GUILayout.Label(
-                "Saving during a mission changes the order of the buy menu. In multiplayer that "
-                + "order is what a purchase is sent as, so edit between missions. Press "
-                + QuartermasterPlugin.ToggleKey + " to hide this window.",
+                "Saving in a mission reorders the buy menu, and online a purchase is sent as "
+                + "that order - so edit between missions. " + QuartermasterPlugin.ToggleKey
+                + " hides this window.",
                 EditorSkin.WrapStyle);
         }
 

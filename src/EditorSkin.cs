@@ -48,6 +48,8 @@ namespace Quartermaster
         internal static GUIStyle PriceStyle = null!;
         internal static GUIStyle WrapStyle = null!;
 
+        internal static GUIStyle CardStyle = null!;
+
         internal static GUIStyle CountStyle = null!;
 
         internal static GUIStyle ButtonStyle = null!;
@@ -56,6 +58,10 @@ namespace Quartermaster
         internal static GUIStyle ListButtonStyle = null!;
 
         internal static GUIStyle ListButtonSelectedStyle = null!;
+
+        internal static GUIStyle ListButtonOffStyle = null!;
+
+        internal static GUIStyle SectionStyle = null!;
 
         internal static GUIStyle FieldStyle = null!;
 
@@ -186,6 +192,17 @@ namespace Quartermaster
                 normal = { textColor = Dim },
             };
 
+            CardStyle = new GUIStyle(LabelStyle)
+            {
+                wordWrap = true,
+                clipping = TextClipping.Overflow,
+                fontSize = F(10f),
+                alignment = TextAnchor.UpperLeft,
+                normal = { background = _field, textColor = Ink },
+                border = Slice(),
+                padding = new RectOffset((int)S(7f), (int)S(7f), (int)S(5f), (int)S(5f)),
+            };
+
             HeadingStyle = new GUIStyle(LabelStyle)
             {
                 fontSize = F(14f),
@@ -239,6 +256,21 @@ namespace Quartermaster
                 normal = { background = _selected, textColor = Ink },
                 hover = { background = _selected, textColor = Ink },
                 focused = { background = _selected, textColor = Ink },
+            };
+
+            ListButtonOffStyle = new GUIStyle(ListButtonStyle)
+            {
+                normal = { background = _button, textColor = Dim },
+                hover = { background = _buttonHover, textColor = Dim },
+                focused = { background = _button, textColor = Dim },
+            };
+
+            SectionStyle = new GUIStyle(LabelStyle)
+            {
+                fontSize = F(11f),
+                fontStyle = FontStyle.Bold,
+                normal = { textColor = Accent },
+                margin = new RectOffset((int)S(2f), (int)S(2f), (int)S(6f), (int)S(2f)),
             };
 
             FieldStyle = new GUIStyle(GUI.skin.textField)

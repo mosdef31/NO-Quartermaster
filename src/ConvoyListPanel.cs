@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Reflection;
 using HarmonyLib;
 using UnityEngine;
@@ -12,12 +13,30 @@ namespace Quartermaster
     {
         internal RectTransform? Viewport;
         internal RectTransform? Content;
+        internal ContributeToFaction? Menu;
 
         internal float MaxHeight;
+
+        private const float Cadence = 0.5f;
+
+        private float _nextMeasure;
 
         private void LateUpdate()
         {
             if (Viewport == null || Content == null) return;
+
+            if (Menu != null && Time.unscaledTime >= _nextMeasure)
+            {
+                _nextMeasure = Time.unscaledTime + Cadence;
+
+                if (Viewport.parent is RectTransform parent && parent != null)
+                {
+
+                    float measured = ConvoyListPanel.MeasureBudget(
+                        Menu, Viewport, parent, announce: false, fallback: 0f);
+                    if (measured > 0f) MaxHeight = measured;
+                }
+            }
 
             float wanted = LayoutUtility.GetPreferredHeight(Content);
             if (wanted <= 0f) return;
@@ -26,6 +45,47 @@ namespace Quartermaster
             if (Mathf.Abs(Viewport.sizeDelta.y - height) < 0.5f) return;
 
             Viewport.sizeDelta = new Vector2(Viewport.sizeDelta.x, height);
+        }
+    }
+
+    internal sealed class ConvoySmoothScroll : MonoBehaviour,
+                                               UnityEngine.EventSystems.IScrollHandler
+    {
+        internal ScrollRect? Scroll;
+
+        internal float Step = 60f;
+
+        private const float Remaining = 0.0001f;
+
+        private float _target = -1f;
+
+        public void OnScroll(UnityEngine.EventSystems.PointerEventData data)
+        {
+            if (Scroll == null || Scroll.content == null) return;
+
+            float travel = Scroll.content.rect.height - Scroll.viewport.rect.height;
+            if (travel <= 1f) return;
+
+            if (_target < 0f) _target = Scroll.verticalNormalizedPosition;
+
+            _target = Mathf.Clamp01(_target + data.scrollDelta.y * Step / travel);
+        }
+
+        private void LateUpdate()
+        {
+            if (Scroll == null || _target < 0f) return;
+
+            float now = Scroll.verticalNormalizedPosition;
+
+            if (Mathf.Abs(now - _target) < 0.0005f)
+            {
+                Scroll.verticalNormalizedPosition = _target;
+                _target = -1f;
+                return;
+            }
+
+            float t = 1f - Mathf.Pow(Remaining, Time.unscaledDeltaTime);
+            Scroll.verticalNormalizedPosition = Mathf.Lerp(now, _target, t);
         }
     }
 
@@ -140,14 +200,20 @@ namespace Quartermaster
             scroll.horizontal = false;
             scroll.vertical = true;
             scroll.movementType = ScrollRect.MovementType.Clamped;
-            scroll.scrollSensitivity = ScrollSensitivity;
+
+            scroll.scrollSensitivity = 0f;
             scroll.inertia = false;
+
+            ConvoySmoothScroll smooth = viewport.AddComponent<ConvoySmoothScroll>();
+            smooth.Scroll = scroll;
+            smooth.Step = ScrollSensitivity;
 
             if (fitted)
             {
                 ConvoyScrollSizer sizer = viewport.AddComponent<ConvoyScrollSizer>();
                 sizer.Viewport = viewportRect;
                 sizer.Content = content;
+                sizer.Menu = menu;
                 sizer.MaxHeight = budget;
             }
 
@@ -155,19 +221,29 @@ namespace Quartermaster
 
             QuartermasterPlugin.Log.LogInfo(
                 fitted
-                    ? "The convoy buy list now grows with its entries up to "
-                      + $"{budget:0} px and scrolls past that. That number is the MEASURED room "
-                      + "above the furniture below it when the line above says so, and the "
-                      + "container's own drawn height only when the measurement was unusable - "
-                      + "the two are different and saying so is what the tenth flight cost."
-                    : "The convoy buy list is now scrollable over the box the game gave it. It "
-                      + "cannot grow, because its container has no layout group to ask.");
+                    ? $"The convoy buy list grows with its entries up to {budget:0} px and "
+                      + "scrolls past that."
+                    : "The convoy buy list scrolls over the box the game gave it. It cannot "
+                      + "grow: its container has no layout group to ask.");
         }
 
-        private static float MeasureBudget(
-            ContributeToFaction menu, RectTransform viewportRect, RectTransform parent)
+        internal static float MeasureBudget(
+            ContributeToFaction menu, RectTransform viewportRect, RectTransform parent,
+            bool announce = true, float fallback = float.NaN)
         {
-            float fallback = viewportRect.rect.height;
+            if (float.IsNaN(fallback)) fallback = viewportRect.rect.height;
+
+            float forced = QuartermasterPlugin.BuyListHeight;
+
+            if (forced > 0f)
+            {
+                if (announce)
+                    QuartermasterPlugin.Log.LogInfo(
+                        $"BuyListHeight is set to {forced:0} px, so the convoy list uses that "
+                        + "instead of the room measured in the menu.");
+
+                return forced;
+            }
 
             float listTop = TopIn(viewportRect, parent);
             float highestBelow = float.NegativeInfinity;
@@ -180,6 +256,8 @@ namespace Quartermaster
 
                 if (info.GetValue(menu) is not Component component || component == null) continue;
                 if (component.transform is not RectTransform rect) continue;
+
+                if (!component.gameObject.activeInHierarchy) continue;
 
                 if (rect.IsChildOf(viewportRect)) continue;
 
@@ -195,9 +273,11 @@ namespace Quartermaster
 
             if (float.IsNegativeInfinity(highestBelow))
             {
-                QuartermasterPlugin.Diag(
-                    "Nothing on this menu sits below the convoy list, so the list keeps the height "
-                    + "the game gave it.");
+                if (announce)
+                    QuartermasterPlugin.Diag(
+                        "Nothing sits below the convoy list, so it keeps the height the game "
+                        + "gave it.");
+
                 return fallback;
             }
 
@@ -205,17 +285,19 @@ namespace Quartermaster
 
             if (budget < MinBudget)
             {
-                QuartermasterPlugin.Diag(
-                    $"Only {budget:0} px measured above '{named}', under the {MinBudget:0} px "
-                    + "floor, so the reading was treated as unusable and the container's own "
-                    + $"{fallback:0} px kept. The list may overlap.");
+                if (announce)
+                    QuartermasterPlugin.Diag(
+                        $"Only {budget:0} px above '{named}', under the {MinBudget:0} px floor, "
+                        + $"so the container's own {fallback:0} px was kept. The list may "
+                        + "overlap. Set BuyListHeight to override.");
+
                 return fallback;
             }
 
-            QuartermasterPlugin.Diag(
-                $"The convoy list has {budget:0} px before it would reach '{named}'. Its container "
-                + $"was drawn at {fallback:0} px, and where that is the larger number the drawn box "
-                + "overlaps the furniture and the measurement is the one to trust.");
+            if (announce)
+                QuartermasterPlugin.Diag(
+                    $"The convoy list has {budget:0} px of room before '{named}'; its container "
+                    + $"was drawn at {fallback:0} px. Set BuyListHeight to give it more.");
 
             return budget;
         }

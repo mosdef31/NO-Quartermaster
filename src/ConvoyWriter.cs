@@ -75,6 +75,9 @@ namespace Quartermaster
                 sb.Append(indent).Append("  \"name\": ").Append(Quote(entry.Name)).Append(",\n");
                 sb.Append(indent).Append("  \"cooldown\": ").Append(Number(entry.Cooldown)).Append(",\n");
 
+                if (!entry.Enabled)
+                    sb.Append(indent).Append("  \"enabled\": false,\n");
+
                 if (entry.Icon.Length > 0)
                     sb.Append(indent).Append("  \"icon\": ").Append(Quote(entry.Icon)).Append(",\n");
 

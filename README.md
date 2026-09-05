@@ -31,15 +31,18 @@ game.
 
 ## The in-game editor
 
-Press **F7**, or tick `ShowEditor` in the settings. The window has three columns:
+Press **`Left Alt` + `` ` ``**, or tick `ShowEditor` in the settings. The window has three columns:
 every ground vehicle in the game on the left, the list you are editing in the
 middle, and your own lists on the right.
 
 - **Search or filter the catalogue.** The buttons under the search box are the
   game's own vehicle categories: trucks, UGVs, LCVs, AFVs, MBTs, artillery, AAA,
   IR and radar SAMs, and radars.
-- **Press `+` beside a vehicle** to put it in the list you are editing, then use
-  `-5 -1 +1 +5` on its row to set how many.
+- **Click a vehicle's row** to put it in the list you are editing, then use
+  `-5 -1 +1 +5` on its row to set how many. The button at the left of each row
+  carries that unit's own icon.
+- **Hover a vehicle** to see what it is armed with: its weapons, how many
+  stations carry each one, and how many rounds each of those holds.
 - **The cost strip under the units** shows what the bundle costs, worked out the
   same way the buy menu works it out, ammunition included. It turns red when the
   bundle costs more than you have to spend.
@@ -49,7 +52,12 @@ middle, and your own lists on the right.
 - **New, Clone, Copy, Paste and Delete** are on the right. Copy puts one list on
   your clipboard as a single line that you can send to somebody else, and Paste
   adds it to your file without overwriting anything you already have.
-- **The arrows reorder your lists**, which is the order the buttons appear in.
+- **The arrows reorder your lists**, which is the order the buttons appear in,
+  and `on` beside a list takes it out of the buy menu without deleting it.
+- **Export, Import and Replace** move your whole file rather than one list.
+  Export writes a timestamped copy beside `quartermaster.json` and puts the lot
+  on your clipboard. Import adds what is on the clipboard to what you have;
+  Replace swaps everything for it, and takes a copy first.
 - **Save and apply** writes the file and refreshes the buy menu in one press.
 
 The window is drawn at a size that suits your screen. If it is too large or too
@@ -129,8 +137,10 @@ Configuration Manager if you have it.
 | `Enabled` | `true` | Turn the mod off without removing it. Off means nothing is added and no file is read or written |
 | `Diagnostics` | `false` | Extra log lines describing what was read, what each list parsed to and what each icon loaded as |
 | `ShowEditor` | `false` | Show the in-game convoy editor. The same thing as the toggle key and the window's own Close button, and all three always agree |
-| `ToggleKey` | `F7` | The key that shows and hides the editor. Modifiers are allowed, written like `LeftControl + F7` |
+| `ToggleKey` | `LeftAlt + BackQuote` | The key that shows and hides the editor. Modifiers are allowed, written like `LeftControl + F7` |
 | `UiScale` | `0` | How large the editor is drawn. `0` works it out from your screen height, which is right on almost every machine. `1` is the smallest readable size and `2` suits a 4K panel. Takes effect straight away |
+| `BudgetWarningAbove` | `200` | A list costing more than this many millions says so in one line while you edit it. It is a warning and nothing else. `0` turns it off |
+| `BuyListHeight` | `0` | How tall the convoy list in the buy menu may grow, in pixels. `0` uses the room the menu actually has, which is what you want unless you have a reason not to |
 
 Problems are logged whichever way `Diagnostics` is set. It only adds the
 commentary around them.
